@@ -10,7 +10,7 @@ def create_random_distribution(N): # Here N is the number of rows/columns in the
     for i in range(len(arr)):
         for j in range(len(arr[i])):
             if arr[i,j]<0.5:
-                arr[i,j] = 0
+                arr[i,j] = -1
             else:
                 arr[i,j] = 1
 
