@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.ndimage as ndimage
 
 eps = 0.5 # Interaction energy between spins, its negative when they are parallel
 
@@ -27,4 +28,12 @@ def microstate_energy(arr,N):
             E += e
     
     return E
-        
+
+# This function comes from other person's code, and it's way optimal
+
+def get_energy(lattice):
+    # applies the nearest neighbour summation
+    kern =  ndimage.generate_binary_structure(2, 1)
+    kern[1][1] = False
+    arr = -lattice*ndimage.convolve(lattice, kern, mode='constant', cval=0)
+    return arr.sum()

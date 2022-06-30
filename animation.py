@@ -4,7 +4,7 @@ import nearest_neighbour as nn
 import numpy as np
 
 N = 500 # Size of the grid
-frames = 100
+frames = 10
 energies = np.empty(frames)
 
 for _ in range(frames):
