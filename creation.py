@@ -15,3 +15,7 @@ def create_random_distribution(N): # Here N is the number of rows/columns in the
                 arr[i,j] = 1
 
     return arr
+
+def create_ones_distribution(N):
+    arr = np.ones(N,N)
+    return arr
