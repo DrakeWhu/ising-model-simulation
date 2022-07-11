@@ -16,7 +16,7 @@ from numba import njit
 import random
 import numpy as np
 
-#@numba.njit("UniTuple(f8[:], 2)(f8[:,:], i8, f8, f8)", nopython=True, nogil=True)
+#@numba.njit("UniTuple(f8[:], 2)(f8[:,:], i8, f8, f8)", nopython=True, nogil=True) (checkear version numpy)
 def metropolis(spin_arr, times, BJ, energy):
     spin_arr = spin_arr.copy()
     net_spins = np.zeros(times-1)

@@ -4,13 +4,13 @@ import nearest_neighbour as nn
 import numpy as np
 
 N = 500 # Size of the grid
-frames = 10
+frames = 50
 energies = np.empty(frames)
 
 for _ in range(frames):
 
     arr  = creation.create_random_distribution(N)
-    energy = nn.microstate_energy(arr,N)
+    energy = nn.get_energy(arr)
     energies[_]=energy
 
     plt.imshow(arr)
