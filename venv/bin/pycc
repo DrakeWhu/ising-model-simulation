@@ -1,3 +1,0 @@
-#!/home/juan/Documentos/GitHub/ising-model-simulation/venv/bin/python
-from numba.pycc import main
-main()
