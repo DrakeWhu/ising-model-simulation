@@ -1,18 +1,39 @@
+import creation
 import evolution
 import metropolis
-import creation
-import scipy.ndimage as ndimage
 import nearest_neighbour as nn
 
-N = 500 # Size of the grid
-steps = 10 # Steps of the simulation
-J = 1 # Interaction energy between spins
-T = 300 # Temperature in Kelvin
-kb = 1.38e-23 # Boltzmann constant
-BJ = J/(kb*T)
+LATTICE_SIZE = 64
+N_SWEEPS = 100
 
-lattice_n = creation.create_random_distribution(N)
+COUPLING = 1.0
+TEMPERATURE = 2.0
+FIELD = 0.0
 
-spins, energies = metropolis(lattice_n, steps, BJ, nn.get_energy(lattice_n))
+BETA = 1.0 / TEMPERATURE
 
-evolution.average_spin_and_energy(spins, energies)
+
+def main() -> None:
+    lattice = creation.create_random_distribution(LATTICE_SIZE)
+    initial_energy = nn.get_energy(lattice, coupling=COUPLING, field=FIELD)
+
+    _final_lattice, spins, energies = metropolis.metropolis(
+        lattice,
+        n_sweeps=N_SWEEPS,
+        beta=BETA,
+        energy=initial_energy,
+        coupling=COUPLING,
+        field=FIELD,
+    )
+
+    evolution.average_spin_and_energy(
+        spins,
+        energies,
+        n_sites=lattice.size,
+        beta=BETA,
+        coupling=COUPLING,
+    )
+
+
+if __name__ == "__main__":
+    main()

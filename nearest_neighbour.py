@@ -1,39 +1,18 @@
 import numpy as np
-import scipy.ndimage as ndimage
 
-eps = 0.5 # Interaction energy between spins, its negative when they are parallel
 
-def spin_energy(i,u,d,r,l):
-    E = -eps*(i*(u+d+r+l))
-    return E
+def get_energy(lattice: np.ndarray, coupling: float = 1.0, field: float = 0.0) -> float:
+    """Compute the 2D square-lattice Ising energy with periodic boundaries.
 
-def microstate_energy(arr,N):
+    Hamiltonian:
+        H = -J sum_<ij> s_i s_j - h sum_i s_i
 
-    E = 0
+    Bonds are counted once by summing only right and down neighbours.
+    """
+    right_neighbours = np.roll(lattice, shift=-1, axis=1)
+    down_neighbours = np.roll(lattice, shift=-1, axis=0)
 
-    for i in range(len(arr)):
-        for j in range(len(arr[i])):
-            if i == N-1 and j == N-1:
-                e = spin_energy(arr[i,j],arr[i-1,j],arr[0,j],arr[i,0],arr[i,j-1])
-            elif i == N-1 and j != N-1:
-                e = spin_energy(arr[i,j],arr[i-1,j],arr[0,j],arr[i,j+1],arr[i,j-1])   
-            elif i != N-1 and j == N-1:
-                e = spin_energy(arr[i,j],arr[i-1,j],arr[i+1,j],arr[i,0],arr[i,j-1]) 
-            elif i != N-1 and j != N-1:
-                e = spin_energy(arr[i,j],arr[i-1,j],arr[i+1,j],arr[i,j+1],arr[i,j-1])
-            else:
-                print("Algo ha salido mal")
-                break
-            
-            E += e
-    
-    return E
+    interaction_energy = -coupling * np.sum(lattice * (right_neighbours + down_neighbours))
+    field_energy = -field * np.sum(lattice)
 
-# This function comes from other person's code, and it's way optimal
-
-def get_energy(lattice):
-    # applies the nearest neighbour summation
-    kern =  ndimage.generate_binary_structure(2, 1)
-    kern[1][1] = False
-    arr = -lattice*ndimage.convolve(lattice, kern, mode='constant', cval=0)
-    return arr.sum()
+    return float(interaction_energy + field_energy)
