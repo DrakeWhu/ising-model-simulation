@@ -26,6 +26,7 @@ py-modules = [
     "animation",
     "creation",
     "evolution",
+    "live_visualization",
     "main",
     "metropolis",
     "metropolis_numba",
