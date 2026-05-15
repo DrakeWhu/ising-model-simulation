@@ -7,7 +7,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import measure_equilibrium
-from exact_square_lattice import critical_temperature
+from exact_square_lattice import (
+    critical_temperature,
+    exact_energy_density,
+    exact_spontaneous_magnetization_density,
+)
 
 DEFAULT_LATTICE_SIZE = 64
 DEFAULT_T_MIN = 1.5
@@ -43,6 +47,78 @@ CSV_FIELDNAMES = [
     "elapsed_seconds",
     "seed",
 ]
+
+
+def build_exact_reference_curves(
+    temperatures: np.ndarray,
+    coupling: float,
+    field: float,
+    n_points: int = 1000,
+    n_critical_points: int = 2000,
+) -> dict[str, np.ndarray] | None:
+    """Return exact thermodynamic-limit reference curves when available.
+
+    The implemented exact references are only valid for the isotropic
+    ferromagnetic 2D square-lattice Ising model at zero external field.
+    """
+    if field != 0.0:
+        return None
+
+    temperature_min = float(np.min(temperatures))
+    temperature_max = float(np.max(temperatures))
+
+    exact_temperatures = np.linspace(temperature_min, temperature_max, n_points)
+
+    tc = critical_temperature(coupling)
+    if temperature_min < tc < temperature_max:
+        span = temperature_max - temperature_min
+        critical_half_width = min(
+            0.25 * span,
+            tc - temperature_min,
+            temperature_max - tc,
+        )
+
+        critical_coordinate = np.linspace(-1.0, 1.0, n_critical_points)
+        critical_temperatures = (
+            tc
+            + np.sign(critical_coordinate) * critical_half_width * np.abs(critical_coordinate) ** 3
+        )
+
+        exact_temperatures = np.unique(
+            np.concatenate(
+                [
+                    exact_temperatures,
+                    critical_temperatures,
+                    np.array([tc]),
+                ]
+            )
+        )
+
+    exact_energy = np.asarray(
+        [exact_energy_density(float(temperature), coupling) for temperature in exact_temperatures],
+        dtype=np.float64,
+    )
+
+    magnetization_temperatures = exact_temperatures[exact_temperatures <= tc]
+    if temperature_min < tc < temperature_max:
+        magnetization_temperatures = np.unique(
+            np.concatenate([magnetization_temperatures, np.array([tc])])
+        )
+
+    exact_magnetization = np.asarray(
+        [
+            exact_spontaneous_magnetization_density(float(temperature), coupling)
+            for temperature in magnetization_temperatures
+        ],
+        dtype=np.float64,
+    )
+
+    return {
+        "energy_temperature": exact_temperatures,
+        "energy_density": exact_energy,
+        "magnetization_temperature": magnetization_temperatures,
+        "spontaneous_magnetization": exact_magnetization,
+    }
 
 
 def build_temperature_grid(
@@ -118,33 +194,65 @@ def plot_temperature_sweep(
     )
     binder = np.asarray([row["binder_cumulant"] for row in rows], dtype=np.float64)
 
+    exact_curves = build_exact_reference_curves(
+        temperatures=temperatures,
+        coupling=coupling,
+        field=field,
+    )
+
     fig, axes = plt.subplots(2, 3, figsize=(15, 8))
     axes = axes.ravel()
 
-    axes[0].plot(temperatures, energy, marker="o")
+    axes[0].plot(temperatures, energy, marker="o", linestyle="none", label="Monte Carlo")
+    if exact_curves is not None:
+        axes[0].plot(
+            exact_curves["energy_temperature"],
+            exact_curves["energy_density"],
+            linewidth=2,
+            label="exact thermodynamic limit",
+        )
     axes[0].set_ylabel(r"$\langle E\rangle/N$")
     axes[0].grid()
+    axes[0].legend(loc="upper left")
 
-    axes[1].plot(temperatures, abs_magnetization, marker="o")
+    axes[1].plot(temperatures, abs_magnetization, marker="o", linestyle="none", label="Monte Carlo")
+    if exact_curves is not None:
+        axes[1].plot(
+            exact_curves["magnetization_temperature"],
+            exact_curves["spontaneous_magnetization"],
+            linewidth=2,
+            label="exact $m_0$, thermodynamic limit",
+        )
     axes[1].set_ylabel(r"$\langle |m| \rangle$")
     axes[1].grid()
+    axes[1].legend(loc="upper right")
 
-    axes[2].plot(temperatures, heat_capacity, marker="o")
+    axes[2].plot(temperatures, heat_capacity, marker="o", linestyle="none")
     axes[2].set_ylabel(r"$C_V/N$")
     axes[2].grid()
 
-    axes[3].plot(temperatures, susceptibility, marker="o")
+    axes[3].plot(temperatures, susceptibility, marker="o", linestyle="none")
     axes[3].set_ylabel(r"$\chi_{|m|}/N$")
     axes[3].grid()
 
-    axes[4].plot(temperatures, binder, marker="o")
+    axes[4].plot(temperatures, binder, marker="o", linestyle="none")
     axes[4].set_ylabel(r"$U_4$")
     axes[4].grid()
 
     axes[5].axis("off")
 
     if field == 0.0:
-        tc = critical_temperature(coupling)
+        if field == 0.0:
+            tc = critical_temperature(coupling)
+            for ax in axes[:5]:
+                ax.axvline(tc, linestyle="--", linewidth=1)
+            axes[5].text(
+                0.05,
+                0.8,
+                rf"$T_c = {tc:.6g}$",
+                transform=axes[5].transAxes,
+                fontsize=12,
+            )
         for ax in axes[:5]:
             ax.axvline(tc, linestyle="--", linewidth=1)
         axes[5].text(

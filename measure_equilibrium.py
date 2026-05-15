@@ -20,6 +20,13 @@ DEFAULT_SAMPLE_EVERY = 10
 
 
 @dataclass(frozen=True)
+class SweepResult:
+    lattice: np.ndarray
+    energy: float
+    magnetization: float
+
+
+@dataclass(frozen=True)
 class EquilibriumMeasurement:
     temperature: float
     beta: float
@@ -61,7 +68,7 @@ def run_sweeps(
     energy: float,
     coupling: float,
     field: float,
-) -> tuple[np.ndarray, float, float, float]:
+) -> SweepResult:
     lattice, spins, energies = metropolis_numba.metropolis_numba(
         lattice,
         n_sweeps=n_sweeps,
@@ -71,7 +78,11 @@ def run_sweeps(
         field=field,
     )
 
-    return lattice, float(energies[-1]), float(spins[-1]), float(energies[-1])
+    return SweepResult(
+        lattice=lattice,
+        energy=float(energies[-1]),
+        magnetization=float(spins[-1]),
+    )
 
 
 def run_equilibrium_measurement(
@@ -133,7 +144,7 @@ def run_equilibrium_measurement(
             thermalization_sweeps - completed_thermalization,
         )
 
-        lattice, current_energy = run_sweeps(
+        sweep_result = run_sweeps(
             lattice=lattice,
             n_sweeps=sweeps_this_chunk,
             beta=beta,
@@ -141,6 +152,9 @@ def run_equilibrium_measurement(
             coupling=coupling,
             field=field,
         )
+
+        lattice = sweep_result.lattice
+        current_energy = sweep_result.energy
 
         completed_thermalization += sweeps_this_chunk
 
@@ -164,7 +178,7 @@ def run_equilibrium_measurement(
     while completed_measurement < measurement_sweeps:
         sweeps_this_sample = min(sample_every, measurement_sweeps - completed_measurement)
 
-        lattice, current_energy, sampled_spin, sampled_energy = run_sweeps(
+        sweep_result = run_sweeps(
             lattice=lattice,
             n_sweeps=sweeps_this_sample,
             beta=beta,
@@ -173,8 +187,11 @@ def run_equilibrium_measurement(
             field=field,
         )
 
-        sampled_magnetizations.append(sampled_spin)
-        sampled_energies.append(sampled_energy)
+        lattice = sweep_result.lattice
+        current_energy = sweep_result.energy
+
+        sampled_magnetizations.append(sweep_result.magnetization)
+        sampled_energies.append(sweep_result.energy)
 
         completed_measurement += sweeps_this_sample
 
