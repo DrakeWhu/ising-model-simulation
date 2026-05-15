@@ -26,6 +26,7 @@ py-modules = [
     "animation",
     "creation",
     "evolution",
+    "exact_square_lattice",
     "live_visualization",
     "main",
     "measure_equilibrium",

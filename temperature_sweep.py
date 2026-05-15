@@ -1,6 +1,5 @@
 import argparse
 import csv
-import math
 import time
 from pathlib import Path
 
@@ -8,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import measure_equilibrium
+from exact_square_lattice import critical_temperature
 
 DEFAULT_LATTICE_SIZE = 64
 DEFAULT_T_MIN = 1.5
@@ -43,11 +43,6 @@ CSV_FIELDNAMES = [
     "elapsed_seconds",
     "seed",
 ]
-
-
-def exact_square_lattice_tc(coupling: float) -> float:
-    """Return exact 2D square-lattice Ising critical temperature for h=0, k_B=1."""
-    return 2.0 * coupling / math.log(1.0 + math.sqrt(2.0))
 
 
 def build_temperature_grid(
@@ -149,7 +144,7 @@ def plot_temperature_sweep(
     axes[5].axis("off")
 
     if field == 0.0:
-        tc = exact_square_lattice_tc(coupling)
+        tc = critical_temperature(coupling)
         for ax in axes[:5]:
             ax.axvline(tc, linestyle="--", linewidth=1)
         axes[5].text(
