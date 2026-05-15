@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 
 import creation
-import metropolis_numba
+import dynamics
 import nearest_neighbour as nn
 import observables
 
@@ -41,6 +41,7 @@ class EquilibriumMeasurement:
     elapsed_seconds: float
     summary: observables.ObservableSummary
     initial_state: str
+    backend: str
 
 
 def print_progress(label: str, completed: int, total: int, start_time: float) -> None:
@@ -68,20 +69,22 @@ def run_sweeps(
     energy: float,
     coupling: float,
     field: float,
+    backend: str,
 ) -> SweepResult:
-    lattice, spins, energies = metropolis_numba.metropolis_numba(
-        lattice,
+    result = dynamics.run_dynamics(
+        lattice=lattice,
         n_sweeps=n_sweeps,
         beta=beta,
         energy=energy,
         coupling=coupling,
         field=field,
+        backend=backend,
     )
 
     return SweepResult(
-        lattice=lattice,
-        energy=float(energies[-1]),
-        magnetization=float(spins[-1]),
+        lattice=result.lattice,
+        energy=float(result.energies[-1]),
+        magnetization=float(result.magnetizations[-1]),
     )
 
 
@@ -95,6 +98,7 @@ def run_equilibrium_measurement(
     field: float = DEFAULT_FIELD,
     seed: int | None = None,
     progress: bool = True,
+    backend: str = "metropolis",
     initial_state: creation.InitialState = "random",
 ) -> EquilibriumMeasurement:
     if lattice_size <= 0:
@@ -108,6 +112,8 @@ def run_equilibrium_measurement(
     if sample_every <= 0:
         raise ValueError("sample_every must be positive.")
 
+    dynamics.validate_backend(backend=backend, field=field)
+
     beta = 1.0 / temperature
 
     if seed is not None:
@@ -118,9 +124,9 @@ def run_equilibrium_measurement(
     n_sites = lattice.size
 
     # Compile Numba before timing / before seeded production dynamics.
-    metropolis_numba.metropolis_numba(
-        lattice.copy(),
-        n_sweeps=1,
+    dynamics.warm_up_backend(
+        backend=backend,
+        lattice=lattice,
         beta=beta,
         energy=current_energy,
         coupling=coupling,
@@ -128,7 +134,7 @@ def run_equilibrium_measurement(
     )
 
     if seed is not None:
-        metropolis_numba.seed_numba_rng(seed)
+        dynamics.seed_backend_rng(backend, seed)
 
     start_time = time.perf_counter()
 
@@ -151,6 +157,7 @@ def run_equilibrium_measurement(
             energy=current_energy,
             coupling=coupling,
             field=field,
+            backend=backend,
         )
 
         lattice = sweep_result.lattice
@@ -185,6 +192,7 @@ def run_equilibrium_measurement(
             energy=current_energy,
             coupling=coupling,
             field=field,
+            backend=backend,
         )
 
         lattice = sweep_result.lattice
@@ -229,6 +237,7 @@ def run_equilibrium_measurement(
         elapsed_seconds=elapsed_seconds,
         summary=summary,
         initial_state=initial_state,
+        backend=backend,
     )
 
 
@@ -260,6 +269,7 @@ def print_summary(result: EquilibriumMeasurement) -> None:
     print(f"Binder U4            = {summary.binder_cumulant:.8g}")
     print()
     print(f"elapsed              = {result.elapsed_seconds:.3f} s")
+    print(f"backend              = {result.backend}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -280,6 +290,12 @@ def parse_args() -> argparse.Namespace:
             default="random",
         ),
     )  # noqa: E501
+    parser.add_argument(
+        "--backend",
+        choices=dynamics.BACKENDS,
+        default="metropolis",
+        help="Dynamics backend.",
+    )
     return parser.parse_args()
 
 
@@ -297,6 +313,7 @@ def main() -> None:
         seed=args.seed,
         progress=not args.no_progress,
         initial_state=args.initial_state,
+        backend=args.backend,
     )
 
     print_summary(result)

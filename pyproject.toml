@@ -25,6 +25,7 @@ dev = [
 py-modules = [
     "animation",
     "creation",
+    "dynamics",
     "evolution",
     "exact_square_lattice",
     "live_visualization",

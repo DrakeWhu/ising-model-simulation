@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+import dynamics
 import measure_equilibrium
 from exact_square_lattice import (
     critical_temperature,
@@ -46,6 +47,7 @@ CSV_FIELDNAMES = [
     "binder_cumulant",
     "elapsed_seconds",
     "seed",
+    "backend",
 ]
 
 
@@ -168,6 +170,7 @@ def row_from_result(
         "binder_cumulant": summary.binder_cumulant,
         "elapsed_seconds": result.elapsed_seconds,
         "seed": seed,
+        "backend": result.backend,
     }
 
 
@@ -192,7 +195,14 @@ def plot_temperature_sweep(
         [row["abs_susceptibility_per_spin"] for row in rows],
         dtype=np.float64,
     )
+
     binder = np.asarray([row["binder_cumulant"] for row in rows], dtype=np.float64)
+
+    backend = str(rows[0].get("backend", "metropolis"))
+    backend_label = {
+        "metropolis": "Metropolis",
+        "wolff": "Wolff",
+    }.get(backend, backend)
 
     exact_curves = build_exact_reference_curves(
         temperatures=temperatures,
@@ -206,16 +216,23 @@ def plot_temperature_sweep(
     axes[0].plot(temperatures, energy, marker="o", linestyle="none", label="Monte Carlo")
     if exact_curves is not None:
         axes[0].plot(
-            exact_curves["energy_temperature"],
-            exact_curves["energy_density"],
-            linewidth=2,
-            label="exact thermodynamic limit",
+            temperatures,
+            energy,
+            marker="o",
+            linestyle="none",
+            label=backend_label,
         )
     axes[0].set_ylabel(r"$\langle E\rangle/N$")
     axes[0].grid()
     axes[0].legend(loc="upper left")
 
-    axes[1].plot(temperatures, abs_magnetization, marker="o", linestyle="none", label="Monte Carlo")
+    axes[1].plot(
+        temperatures,
+        abs_magnetization,
+        marker="o",
+        linestyle="none",
+        label=backend_label,
+    )
     if exact_curves is not None:
         axes[1].plot(
             exact_curves["magnetization_temperature"],
@@ -242,17 +259,7 @@ def plot_temperature_sweep(
     axes[5].axis("off")
 
     if field == 0.0:
-        if field == 0.0:
-            tc = critical_temperature(coupling)
-            for ax in axes[:5]:
-                ax.axvline(tc, linestyle="--", linewidth=1)
-            axes[5].text(
-                0.05,
-                0.8,
-                rf"$T_c = {tc:.6g}$",
-                transform=axes[5].transAxes,
-                fontsize=12,
-            )
+        tc = critical_temperature(coupling)
         for ax in axes[:5]:
             ax.axvline(tc, linestyle="--", linewidth=1)
         axes[5].text(
@@ -266,7 +273,7 @@ def plot_temperature_sweep(
     for ax in axes[:5]:
         ax.set_xlabel(r"$T$")
 
-    fig.suptitle("2D square-lattice Ising temperature sweep")
+    fig.suptitle(f"2D square-lattice Ising temperature sweep ({backend_label})")
     fig.tight_layout()
 
     if save_path is not None:
@@ -306,6 +313,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--plot-output", type=Path, default=Path("outputs/temperature_sweep.png"))
     parser.add_argument("--no-show", action="store_true")
     parser.add_argument("--no-progress", action="store_true")
+    parser.add_argument("--backend", choices=dynamics.BACKENDS, default="metropolis")
 
     return parser.parse_args()
 
@@ -335,7 +343,10 @@ def main() -> None:
             print()
             print(
                 f"[{index}/{len(temperatures)}] "
-                f"T={temperature:.6g}, L={args.size}, initial={args.initial_state}"
+                f"T={temperature:.6g}, L={args.size}, "
+                f"initial={args.initial_state}, "
+                f"backend={args.backend}, "
+                f"seed={run_seed}"
             )
 
             result = measure_equilibrium.run_equilibrium_measurement(
@@ -349,6 +360,7 @@ def main() -> None:
                 seed=run_seed,
                 progress=not args.no_progress,
                 initial_state=args.initial_state,
+                backend=args.backend,
             )
 
             row = row_from_result(result, seed=run_seed)
