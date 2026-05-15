@@ -9,7 +9,6 @@ import metropolis_numba
 import nearest_neighbour as nn
 import observables
 
-
 DEFAULT_LATTICE_SIZE = 64
 DEFAULT_TEMPERATURE = 2.0
 DEFAULT_COUPLING = 1.0
@@ -34,6 +33,7 @@ class EquilibriumMeasurement:
     n_samples: int
     elapsed_seconds: float
     summary: observables.ObservableSummary
+    initial_state: str
 
 
 def print_progress(label: str, completed: int, total: int, start_time: float) -> None:
@@ -84,6 +84,7 @@ def run_equilibrium_measurement(
     field: float = DEFAULT_FIELD,
     seed: int | None = None,
     progress: bool = True,
+    initial_state: creation.InitialState = "random",
 ) -> EquilibriumMeasurement:
     if lattice_size <= 0:
         raise ValueError("lattice_size must be positive.")
@@ -101,7 +102,7 @@ def run_equilibrium_measurement(
     if seed is not None:
         np.random.seed(seed)
 
-    lattice = creation.create_random_distribution(lattice_size)
+    lattice = creation.create_spin_lattice(lattice_size, initial_state=initial_state)
     current_energy = nn.get_energy(lattice, coupling=coupling, field=field)
     n_sites = lattice.size
 
@@ -210,6 +211,7 @@ def run_equilibrium_measurement(
         n_samples=len(sampled_energies),
         elapsed_seconds=elapsed_seconds,
         summary=summary,
+        initial_state=initial_state,
     )
 
 
@@ -225,6 +227,7 @@ def print_summary(result: EquilibriumMeasurement) -> None:
     print(f"beta                 = {result.beta:g}")
     print(f"J                    = {result.coupling:g}")
     print(f"h                    = {result.field:g}")
+    print(f"initial_state        = {result.initial_state}")
     print(f"thermalization       = {result.thermalization_sweeps} sweeps")
     print(f"measurement          = {result.measurement_sweeps} sweeps")
     print(f"sample_every         = {result.sample_every} sweeps")
@@ -253,6 +256,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sample-every", type=int, default=DEFAULT_SAMPLE_EVERY)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--no-progress", action="store_true")
+    (
+        parser.add_argument(
+            "--initial-state",
+            choices=["random", "all-up", "all-down", "checkerboard"],
+            default="random",
+        ),
+    )  # noqa: E501
     return parser.parse_args()
 
 
@@ -269,6 +279,7 @@ def main() -> None:
         field=args.field,
         seed=args.seed,
         progress=not args.no_progress,
+        initial_state=args.initial_state,
     )
 
     print_summary(result)

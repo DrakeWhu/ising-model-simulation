@@ -8,7 +8,6 @@ import creation
 import metropolis_numba
 import nearest_neighbour as nn
 
-
 DEFAULT_LATTICE_SIZE = 256
 DEFAULT_N_SWEEPS = 5000
 DEFAULT_SWEEPS_PER_FRAME = 10
