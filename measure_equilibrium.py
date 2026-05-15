@@ -133,7 +133,7 @@ def run_equilibrium_measurement(
             thermalization_sweeps - completed_thermalization,
         )
 
-        lattice, current_energy, _current_spin, _current_energy_check = run_sweeps(
+        lattice, current_energy = run_sweeps(
             lattice=lattice,
             n_sweeps=sweeps_this_chunk,
             beta=beta,

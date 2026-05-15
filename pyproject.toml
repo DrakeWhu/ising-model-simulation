@@ -33,6 +33,7 @@ py-modules = [
     "metropolis_numba",
     "nearest_neighbour",
     "observables",
+    "temperature_sweep",
 ]
 
 [tool.ruff]
