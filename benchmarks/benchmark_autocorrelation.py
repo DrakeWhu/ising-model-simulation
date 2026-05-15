@@ -203,12 +203,13 @@ def run_algorithm_autocorrelation(
     chunks: int,
     progress: bool,
     max_lag: int | None,
+    seed: int,
 ) -> AutocorrelationSummary:
     if algorithm == "metropolis":
-        metropolis_numba.seed_numba_rng(123)
+        metropolis_numba.seed_numba_rng(seed)
         label_prefix = "Metropolis"
     elif algorithm == "wolff":
-        wolff_numba.seed_numba_rng(123)
+        wolff_numba.seed_numba_rng(seed)
         label_prefix = "Wolff"
     else:
         raise ValueError(f"Unknown algorithm: {algorithm!r}")
