@@ -3,6 +3,12 @@ from numba import njit
 
 
 @njit(cache=True)
+def seed_numba_rng(seed: int) -> None:
+    """Seed Numba's internal random number generator."""
+    np.random.seed(seed)
+
+
+@njit(cache=True)
 def delta_energy_periodic_numba(
     spin_arr: np.ndarray,
     x_index: int,
