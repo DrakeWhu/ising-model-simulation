@@ -1,6 +1,8 @@
 import argparse
+import csv
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -457,6 +459,22 @@ def print_results_table(results: list[BenchmarkResult]) -> None:
         )
 
 
+def save_results_csv(results: list[BenchmarkResult], output_path: Path) -> None:
+    if not results:
+        raise ValueError("Cannot save an empty benchmark result list.")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fieldnames = list(asdict(results[0]).keys())
+
+    with output_path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for result in results:
+            writer.writerow(asdict(result))
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Benchmark Metropolis Numba against Wolff Numba dynamics."
@@ -501,6 +519,12 @@ def parse_args() -> argparse.Namespace:
         "--progress",
         action="store_true",
         help="Show progress bars.",
+    )
+    parser.add_argument(
+        "--save-csv",
+        type=Path,
+        default=None,
+        help="Optional path where benchmark results will be saved as CSV.",
     )
     return parser.parse_args()
 
@@ -589,6 +613,9 @@ def main() -> None:
             )
 
     print_results_table(results)
+    if args.save_csv is not None:
+        save_results_csv(results, args.save_csv)
+        print(f"\nSaved benchmark results to {args.save_csv}")
 
     paired_results = {}
     for result in results:
