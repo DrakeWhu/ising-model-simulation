@@ -63,6 +63,89 @@ def _build_lattice_from_neighbor_lists(
     )
 
 
+def _build_3d_basis_lattice_from_nearest_neighbors(
+    name: str,
+    shape: tuple[int, int, int, int],
+    basis: np.ndarray,
+    nearest_neighbor_distance_squared: float,
+    periodic: bool,
+    tolerance: float = 1.0e-12,
+) -> Lattice:
+    size_x, size_y, size_z, n_basis = shape
+
+    if basis.shape != (n_basis, 3):
+        raise ValueError("basis must have shape (n_basis, 3).")
+
+    def index(x: int, y: int, z: int, basis_index: int) -> int:
+        return (((x * size_y + y) * size_z + z) * n_basis) + basis_index
+
+    neighbor_lists: list[list[int]] = [[] for _ in range(size_x * size_y * size_z * n_basis)]
+
+    for x in range(size_x):
+        for y in range(size_y):
+            for z in range(size_z):
+                for basis_index in range(n_basis):
+                    site_index = index(x, y, z, basis_index)
+                    site_position = basis[basis_index]
+
+                    for dx in (-1, 0, 1):
+                        for dy in (-1, 0, 1):
+                            for dz in (-1, 0, 1):
+                                for neighbor_basis_index in range(n_basis):
+                                    if (
+                                        dx == 0
+                                        and dy == 0
+                                        and dz == 0
+                                        and neighbor_basis_index == basis_index
+                                    ):
+                                        continue
+
+                                    delta = (
+                                        np.array([dx, dy, dz], dtype=np.float64)
+                                        + basis[neighbor_basis_index]
+                                        - site_position
+                                    )
+                                    distance_squared = float(np.dot(delta, delta))
+
+                                    if (
+                                        abs(distance_squared - nearest_neighbor_distance_squared)
+                                        > tolerance
+                                    ):
+                                        continue
+
+                                    nx = x + dx
+                                    ny = y + dy
+                                    nz = z + dz
+
+                                    if periodic:
+                                        nx %= size_x
+                                        ny %= size_y
+                                        nz %= size_z
+                                    elif not (
+                                        0 <= nx < size_x and 0 <= ny < size_y and 0 <= nz < size_z
+                                    ):
+                                        continue
+
+                                    neighbor_index = index(
+                                        nx,
+                                        ny,
+                                        nz,
+                                        neighbor_basis_index,
+                                    )
+
+                                    if (
+                                        neighbor_index != site_index
+                                        and neighbor_index not in neighbor_lists[site_index]
+                                    ):
+                                        neighbor_lists[site_index].append(neighbor_index)
+
+    return _build_lattice_from_neighbor_lists(
+        name=name,
+        shape=shape,
+        neighbor_lists=neighbor_lists,
+    )
+
+
 def square_lattice_2d(size: int, periodic: bool = True) -> Lattice:
     if size <= 0:
         raise ValueError("size must be positive.")
@@ -256,4 +339,62 @@ def cubic_lattice_3d(size: int, periodic: bool = True) -> Lattice:
         name=f"cubic_3d_{boundary}",
         shape=(size, size, size),
         neighbor_lists=neighbor_lists,
+    )
+
+
+def bcc_lattice_3d(size: int, periodic: bool = True) -> Lattice:
+    """Build a 3D body-centered cubic lattice.
+
+    The lattice has size x size x size conventional cubic cells and two sites
+    per cell.
+    """
+    if size <= 0:
+        raise ValueError("size must be positive.")
+
+    basis = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [0.5, 0.5, 0.5],
+        ],
+        dtype=np.float64,
+    )
+
+    boundary = "periodic" if periodic else "open"
+
+    return _build_3d_basis_lattice_from_nearest_neighbors(
+        name=f"bcc_3d_{boundary}",
+        shape=(size, size, size, 2),
+        basis=basis,
+        nearest_neighbor_distance_squared=0.75,
+        periodic=periodic,
+    )
+
+
+def fcc_lattice_3d(size: int, periodic: bool = True) -> Lattice:
+    """Build a 3D face-centered cubic lattice.
+
+    The lattice has size x size x size conventional cubic cells and four sites
+    per cell.
+    """
+    if size <= 0:
+        raise ValueError("size must be positive.")
+
+    basis = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.5, 0.5],
+            [0.5, 0.0, 0.5],
+            [0.5, 0.5, 0.0],
+        ],
+        dtype=np.float64,
+    )
+
+    boundary = "periodic" if periodic else "open"
+
+    return _build_3d_basis_lattice_from_nearest_neighbors(
+        name=f"fcc_3d_{boundary}",
+        shape=(size, size, size, 4),
+        basis=basis,
+        nearest_neighbor_distance_squared=0.5,
+        periodic=periodic,
     )

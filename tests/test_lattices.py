@@ -78,6 +78,42 @@ class TestLattices(unittest.TestCase):
         self.assertEqual(len(lattice.edge_u), 40)
         self.assertEqual(len(lattice.edge_v), 40)
 
+    def test_periodic_bcc_lattice_has_expected_connectivity(self) -> None:
+        lattice = lattices.bcc_lattice_3d(size=4, periodic=True)
+
+        degrees = np.diff(lattice.neighbor_offsets)
+
+        self.assertEqual(lattice.n_sites, 128)
+        self.assertEqual(lattice.shape, (4, 4, 4, 2))
+        self.assertTrue(np.all(degrees == 8))
+        self.assertEqual(len(lattice.edge_u), 512)
+        self.assertEqual(len(lattice.edge_v), 512)
+
+    def test_open_bcc_lattice_has_expected_edge_count(self) -> None:
+        lattice = lattices.bcc_lattice_3d(size=4, periodic=False)
+
+        self.assertEqual(lattice.n_sites, 128)
+        self.assertEqual(len(lattice.edge_u), 343)
+        self.assertEqual(len(lattice.edge_v), 343)
+
+    def test_periodic_fcc_lattice_has_expected_connectivity(self) -> None:
+        lattice = lattices.fcc_lattice_3d(size=4, periodic=True)
+
+        degrees = np.diff(lattice.neighbor_offsets)
+
+        self.assertEqual(lattice.n_sites, 256)
+        self.assertEqual(lattice.shape, (4, 4, 4, 4))
+        self.assertTrue(np.all(degrees == 12))
+        self.assertEqual(len(lattice.edge_u), 1536)
+        self.assertEqual(len(lattice.edge_v), 1536)
+
+    def test_open_fcc_lattice_has_expected_edge_count(self) -> None:
+        lattice = lattices.fcc_lattice_3d(size=4, periodic=False)
+
+        self.assertEqual(lattice.n_sites, 256)
+        self.assertEqual(len(lattice.edge_u), 1176)
+        self.assertEqual(len(lattice.edge_v), 1176)
+
 
 if __name__ == "__main__":
     unittest.main()
