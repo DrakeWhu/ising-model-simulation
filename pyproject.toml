@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "ising-model-simulation"
 version = "0.1.0"
 description = "Computational statistical physics playground for Ising model simulations."
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "numpy",

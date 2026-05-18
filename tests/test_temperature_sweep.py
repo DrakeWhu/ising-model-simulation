@@ -1,4 +1,6 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
 
@@ -139,6 +141,42 @@ class TestTemperatureSweep(unittest.TestCase):
             result["magnetization_temperature"].shape,
             result["spontaneous_magnetization"].shape,
         )
+
+    def test_plot_temperature_sweep_smoke(self) -> None:
+        rows = [
+            {
+                "temperature": 2.0,
+                "energy_density_mean": -1.75,
+                "abs_magnetization_mean": 0.9,
+                "specific_heat_per_spin": 0.1,
+                "abs_susceptibility_per_spin": 1.0,
+                "binder_cumulant": 0.65,
+                "backend": "wolff",
+            },
+            {
+                "temperature": 2.5,
+                "energy_density_mean": -1.1,
+                "abs_magnetization_mean": 0.2,
+                "specific_heat_per_spin": 0.5,
+                "abs_susceptibility_per_spin": 4.0,
+                "binder_cumulant": 0.1,
+                "backend": "wolff",
+            },
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "temperature_sweep.png"
+
+            temperature_sweep.plot_temperature_sweep(
+                rows=rows,
+                coupling=1.0,
+                field=0.0,
+                save_path=output,
+                show=False,
+            )
+
+            self.assertTrue(output.exists())
+            self.assertGreater(output.stat().st_size, 0)
 
 
 if __name__ == "__main__":

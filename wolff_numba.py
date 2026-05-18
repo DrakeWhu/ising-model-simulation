@@ -138,6 +138,74 @@ def wolff_step_numba(
 
 
 @njit(cache=True)
+def wolff_numba_with_cluster_stats(
+    spin_arr: np.ndarray,
+    n_sweeps: int,
+    beta: float,
+    energy: float,
+    coupling: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Run Wolff dynamics and record cluster statistics per effective sweep.
+
+    One effective Wolff sweep is defined as enough cluster flips for the sum of
+    flipped cluster sizes to reach at least N_sites.
+
+    The magnetization and energy arrays include the initial state and therefore
+    have length n_sweeps + 1. Cluster-stat arrays describe the transitions
+    between samples and therefore have length n_sweeps.
+    """
+    if n_sweeps < 0:
+        raise ValueError("n_sweeps cannot be negative.")
+
+    spin_arr = spin_arr.copy()
+    n_sites = spin_arr.size
+
+    net_spins = np.empty(n_sweeps + 1, dtype=np.float64)
+    net_energy = np.empty(n_sweeps + 1, dtype=np.float64)
+    cluster_flips = np.empty(n_sweeps, dtype=np.int64)
+    mean_cluster_sizes = np.empty(n_sweeps, dtype=np.float64)
+    max_cluster_sizes = np.empty(n_sweeps, dtype=np.int64)
+
+    net_spins[0] = spin_arr.sum()
+    net_energy[0] = energy
+
+    for sweep in range(1, n_sweeps + 1):
+        flipped_sites = 0
+        magnetization = net_spins[sweep - 1]
+        sweep_cluster_flips = 0
+        sweep_cluster_size_sum = 0.0
+        sweep_max_cluster_size = 0
+
+        while flipped_sites < n_sites:
+            energy, magnetization, cluster_size = _wolff_step_inplace(
+                spin_arr,
+                beta=beta,
+                energy=energy,
+                coupling=coupling,
+            )
+            flipped_sites += cluster_size
+            sweep_cluster_flips += 1
+            sweep_cluster_size_sum += cluster_size
+            if cluster_size > sweep_max_cluster_size:
+                sweep_max_cluster_size = cluster_size
+
+        net_spins[sweep] = magnetization
+        net_energy[sweep] = energy
+        cluster_flips[sweep - 1] = sweep_cluster_flips
+        mean_cluster_sizes[sweep - 1] = sweep_cluster_size_sum / sweep_cluster_flips
+        max_cluster_sizes[sweep - 1] = sweep_max_cluster_size
+
+    return (
+        spin_arr,
+        net_spins,
+        net_energy,
+        cluster_flips,
+        mean_cluster_sizes,
+        max_cluster_sizes,
+    )
+
+
+@njit(cache=True)
 def wolff_numba(
     spin_arr: np.ndarray,
     n_sweeps: int,
@@ -150,32 +218,19 @@ def wolff_numba(
     One effective Wolff sweep is defined as enough cluster flips for the sum of
     flipped cluster sizes to reach at least N_sites.
     """
-    if n_sweeps < 0:
-        raise ValueError("n_sweeps cannot be negative.")
-
-    spin_arr = spin_arr.copy()
-    n_sites = spin_arr.size
-
-    net_spins = np.empty(n_sweeps + 1, dtype=np.float64)
-    net_energy = np.empty(n_sweeps + 1, dtype=np.float64)
-
-    net_spins[0] = spin_arr.sum()
-    net_energy[0] = energy
-
-    for sweep in range(1, n_sweeps + 1):
-        flipped_sites = 0
-        magnetization = net_spins[sweep - 1]
-
-        while flipped_sites < n_sites:
-            energy, magnetization, cluster_size = _wolff_step_inplace(
-                spin_arr,
-                beta=beta,
-                energy=energy,
-                coupling=coupling,
-            )
-            flipped_sites += cluster_size
-
-        net_spins[sweep] = magnetization
-        net_energy[sweep] = energy
+    (
+        spin_arr,
+        net_spins,
+        net_energy,
+        _,
+        _,
+        _,
+    ) = wolff_numba_with_cluster_stats(
+        spin_arr,
+        n_sweeps=n_sweeps,
+        beta=beta,
+        energy=energy,
+        coupling=coupling,
+    )
 
     return spin_arr, net_spins, net_energy

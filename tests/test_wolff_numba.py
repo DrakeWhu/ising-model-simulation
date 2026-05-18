@@ -106,6 +106,42 @@ class TestWolffNumba(unittest.TestCase):
             nn.get_energy(updated_lattice, coupling=1.0, field=0.0),
         )
 
+    def test_wolff_numba_with_cluster_stats_returns_per_sweep_stats(self) -> None:
+        lattice = np.ones((8, 8), dtype=np.int8)
+        energy = nn.get_energy(lattice, coupling=1.0, field=0.0)
+
+        wolff_numba.seed_numba_rng(123)
+        (
+            updated_lattice,
+            spins,
+            energies,
+            cluster_flips,
+            mean_cluster_sizes,
+            max_cluster_sizes,
+        ) = wolff_numba.wolff_numba_with_cluster_stats(
+            lattice,
+            n_sweeps=3,
+            beta=1.0 / 2.0,
+            energy=energy,
+            coupling=1.0,
+        )
+
+        self.assertEqual(spins.shape, (4,))
+        self.assertEqual(energies.shape, (4,))
+        self.assertEqual(cluster_flips.shape, (3,))
+        self.assertEqual(mean_cluster_sizes.shape, (3,))
+        self.assertEqual(max_cluster_sizes.shape, (3,))
+        self.assertTrue(np.all(cluster_flips >= 1))
+        self.assertTrue(np.all(mean_cluster_sizes >= 1.0))
+        self.assertTrue(np.all(mean_cluster_sizes <= lattice.size))
+        self.assertTrue(np.all(max_cluster_sizes >= 1))
+        self.assertTrue(np.all(max_cluster_sizes <= lattice.size))
+        self.assertTrue(np.all(np.isin(updated_lattice, [-1, 1])))
+        self.assertAlmostEqual(
+            energies[-1],
+            nn.get_energy(updated_lattice, coupling=1.0, field=0.0),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

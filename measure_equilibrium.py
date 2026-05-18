@@ -283,13 +283,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sample-every", type=int, default=DEFAULT_SAMPLE_EVERY)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--no-progress", action="store_true")
+
     (
         parser.add_argument(
             "--initial-state",
             choices=["random", "all-up", "all-down", "checkerboard"],
             default="random",
         ),
-    )  # noqa: E501
+    )
+
     parser.add_argument(
         "--backend",
         choices=dynamics.BACKENDS,
