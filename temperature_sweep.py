@@ -213,15 +213,16 @@ def plot_temperature_sweep(
     fig, axes = plt.subplots(2, 3, figsize=(15, 8))
     axes = axes.ravel()
 
-    axes[0].plot(temperatures, energy, marker="o", linestyle="none", label="Monte Carlo")
+    axes[0].plot(temperatures, energy, marker="o", linestyle="none", label=backend_label)
     if exact_curves is not None:
         axes[0].plot(
-            temperatures,
-            energy,
-            marker="o",
-            linestyle="none",
-            label=backend_label,
+            exact_curves["energy_temperature"],
+            exact_curves["energy_density"],
+            linestyle="-",
+            linewidth=2,
+            label="exact energy, thermodynamic limit",
         )
+
     axes[0].set_ylabel(r"$\langle E\rangle/N$")
     axes[0].grid()
     axes[0].legend(loc="upper left")
