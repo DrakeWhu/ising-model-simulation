@@ -104,6 +104,116 @@ def square_lattice_2d(size: int, periodic: bool = True) -> Lattice:
     )
 
 
+def triangular_lattice_2d(size: int, periodic: bool = True) -> Lattice:
+    if size <= 0:
+        raise ValueError("size must be positive.")
+
+    def index(row: int, col: int) -> int:
+        return row * size + col
+
+    neighbor_lists: list[list[int]] = []
+
+    for row in range(size):
+        for col in range(size):
+            site_neighbors: list[int] = []
+
+            candidate_positions = [
+                (row - 1, col),
+                (row + 1, col),
+                (row, col - 1),
+                (row, col + 1),
+                (row - 1, col + 1),
+                (row + 1, col - 1),
+            ]
+
+            for neighbor_row, neighbor_col in candidate_positions:
+                if periodic:
+                    neighbor_row %= size
+                    neighbor_col %= size
+                elif not (0 <= neighbor_row < size and 0 <= neighbor_col < size):
+                    continue
+
+                neighbor = index(neighbor_row, neighbor_col)
+                if neighbor != index(row, col) and neighbor not in site_neighbors:
+                    site_neighbors.append(neighbor)
+
+            neighbor_lists.append(site_neighbors)
+
+    boundary = "periodic" if periodic else "open"
+    return _build_lattice_from_neighbor_lists(
+        name=f"triangular_2d_{boundary}",
+        shape=(size, size),
+        neighbor_lists=neighbor_lists,
+    )
+
+
+def hexagonal_lattice_2d(size: int, periodic: bool = True) -> Lattice:
+    """Build a 2D honeycomb/hexagonal lattice.
+
+    The lattice has size x size unit cells and two sites per unit cell.
+    """
+    if size <= 0:
+        raise ValueError("size must be positive.")
+
+    def index(row: int, col: int, sublattice: int) -> int:
+        return 2 * (row * size + col) + sublattice
+
+    neighbor_lists: list[list[int]] = []
+
+    for row in range(size):
+        for col in range(size):
+            # A sublattice site.
+            site_neighbors: list[int] = []
+
+            candidate_b_positions = [
+                (row, col),
+                (row - 1, col),
+                (row, col - 1),
+            ]
+
+            for neighbor_row, neighbor_col in candidate_b_positions:
+                if periodic:
+                    neighbor_row %= size
+                    neighbor_col %= size
+                elif not (0 <= neighbor_row < size and 0 <= neighbor_col < size):
+                    continue
+
+                neighbor = index(neighbor_row, neighbor_col, 1)
+                if neighbor not in site_neighbors:
+                    site_neighbors.append(neighbor)
+
+            neighbor_lists.append(site_neighbors)
+
+            # B sublattice site.
+            site_neighbors = []
+
+            candidate_a_positions = [
+                (row, col),
+                (row + 1, col),
+                (row, col + 1),
+            ]
+
+            for neighbor_row, neighbor_col in candidate_a_positions:
+                if periodic:
+                    neighbor_row %= size
+                    neighbor_col %= size
+                elif not (0 <= neighbor_row < size and 0 <= neighbor_col < size):
+                    continue
+
+                neighbor = index(neighbor_row, neighbor_col, 0)
+                if neighbor not in site_neighbors:
+                    site_neighbors.append(neighbor)
+
+            neighbor_lists.append(site_neighbors)
+
+    boundary = "periodic" if periodic else "open"
+    return _build_lattice_from_neighbor_lists(
+        name=f"hexagonal_2d_{boundary}",
+        shape=(size, size, 2),
+        neighbor_lists=neighbor_lists,
+    )
+
+
 def cubic_lattice_3d(size: int, periodic: bool = True) -> Lattice:
     if size <= 0:
         raise ValueError("size must be positive.")

@@ -42,6 +42,42 @@ class TestLattices(unittest.TestCase):
         self.assertEqual(len(lattice.edge_u), 144)
         self.assertEqual(len(lattice.edge_v), 144)
 
+    def test_periodic_triangular_lattice_has_expected_connectivity(self) -> None:
+        lattice = lattices.triangular_lattice_2d(size=4, periodic=True)
+
+        degrees = np.diff(lattice.neighbor_offsets)
+
+        self.assertEqual(lattice.n_sites, 16)
+        self.assertEqual(lattice.shape, (4, 4))
+        self.assertTrue(np.all(degrees == 6))
+        self.assertEqual(len(lattice.edge_u), 48)
+        self.assertEqual(len(lattice.edge_v), 48)
+
+    def test_open_triangular_lattice_has_expected_edge_count(self) -> None:
+        lattice = lattices.triangular_lattice_2d(size=4, periodic=False)
+
+        self.assertEqual(lattice.n_sites, 16)
+        self.assertEqual(len(lattice.edge_u), 33)
+        self.assertEqual(len(lattice.edge_v), 33)
+
+    def test_periodic_hexagonal_lattice_has_expected_connectivity(self) -> None:
+        lattice = lattices.hexagonal_lattice_2d(size=4, periodic=True)
+
+        degrees = np.diff(lattice.neighbor_offsets)
+
+        self.assertEqual(lattice.n_sites, 32)
+        self.assertEqual(lattice.shape, (4, 4, 2))
+        self.assertTrue(np.all(degrees == 3))
+        self.assertEqual(len(lattice.edge_u), 48)
+        self.assertEqual(len(lattice.edge_v), 48)
+
+    def test_open_hexagonal_lattice_has_expected_edge_count(self) -> None:
+        lattice = lattices.hexagonal_lattice_2d(size=4, periodic=False)
+
+        self.assertEqual(lattice.n_sites, 32)
+        self.assertEqual(len(lattice.edge_u), 40)
+        self.assertEqual(len(lattice.edge_v), 40)
+
 
 if __name__ == "__main__":
     unittest.main()

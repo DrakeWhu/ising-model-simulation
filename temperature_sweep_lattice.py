@@ -33,6 +33,12 @@ def default_critical_temperature(
     if lattice_kind == "square2d":
         return float(2.0 * coupling / np.log(1.0 + np.sqrt(2.0)))
 
+    if lattice_kind == "triangular2d":
+        return float(4.0 * coupling / np.log(3.0))
+
+    if lattice_kind == "hexagonal2d":
+        return float(2.0 * coupling / np.log(2.0 + np.sqrt(3.0)))
+
     if lattice_kind == "cubic3d":
         return float(4.5115 * coupling)
 

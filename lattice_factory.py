@@ -5,9 +5,9 @@ from typing import Literal
 import lattices
 from lattices import Lattice
 
-LatticeKind = Literal["square2d", "cubic3d"]
+LatticeKind = Literal["square2d", "triangular2d", "hexagonal2d", "cubic3d"]
 
-SUPPORTED_LATTICES = ("square2d", "cubic3d")
+SUPPORTED_LATTICES = ("square2d", "triangular2d", "hexagonal2d", "cubic3d")
 
 
 def build_lattice(
@@ -17,6 +17,12 @@ def build_lattice(
 ) -> Lattice:
     if lattice_kind == "square2d":
         return lattices.square_lattice_2d(size=size, periodic=periodic)
+
+    if lattice_kind == "triangular2d":
+        return lattices.triangular_lattice_2d(size=size, periodic=periodic)
+
+    if lattice_kind == "hexagonal2d":
+        return lattices.hexagonal_lattice_2d(size=size, periodic=periodic)
 
     if lattice_kind == "cubic3d":
         return lattices.cubic_lattice_3d(size=size, periodic=periodic)

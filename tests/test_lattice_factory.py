@@ -22,6 +22,20 @@ class TestLatticeFactory(unittest.TestCase):
         with self.assertRaises(ValueError):
             lattice_factory.build_lattice("bcc3d", size=4, periodic=True)
 
+    def test_build_triangular2d_lattice(self) -> None:
+        lattice = lattice_factory.build_lattice("triangular2d", size=4, periodic=True)
+
+        self.assertEqual(lattice.name, "triangular_2d_periodic")
+        self.assertEqual(lattice.shape, (4, 4))
+        self.assertEqual(lattice.n_sites, 16)
+
+    def test_build_hexagonal2d_lattice(self) -> None:
+        lattice = lattice_factory.build_lattice("hexagonal2d", size=4, periodic=True)
+
+        self.assertEqual(lattice.name, "hexagonal_2d_periodic")
+        self.assertEqual(lattice.shape, (4, 4, 2))
+        self.assertEqual(lattice.n_sites, 32)
+
 
 if __name__ == "__main__":
     unittest.main()
